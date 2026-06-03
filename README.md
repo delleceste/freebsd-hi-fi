@@ -65,6 +65,17 @@ Disable animations and unwanted effects
 
 # Audio
 
+## clean pulseaudio  / pipewire
+
+Remove the executables from /usr/local/bin or rename in .no as in Linux
+
+## MPD
+
+pkg install musicpd
+
+We used to have a *resampler* option. No more used. 
+musicpd.conf has been cleaned. options removed from the recent releases of MPD have been deleted as well.
+
 ## upmpdcli
 
 - *upmpdcli* will be installed *system-wide*
@@ -163,16 +174,45 @@ Restart upmpdcli
 /usr/local/bin/upmpdcli -c /home/giacomo/.local/etc/upmpdcli.conf
 ```
 
-## clean pulseaudio  / pipewire
+### brutefir
 
-Remove the executables from /usr/local/bin or rename in .no as in Linux
+> cd Downloads
 
-## MPD
+> git clone https://github.com/delleceste/brutefir
 
-pkg install musicpd
+Relevant files
 
-We used to have a *resampler* option. No more used. 
-musicpd.conf has been cleaned. Removed options have been deleted.
+- [FreeBSD.md](https://github.com/delleceste/brutefir/blob/master/FreeBSD.md)
+  
+- freebsd/  directory
+
+#### Build and install
+
+> mkdir build
+
+> cd build
+
+> cmake ..
+
+> make
+
+> sudo make install
+
+```
+Install the project...
+-- Install configuration: ""
+-- Installing: /usr/local/bin/brutefir
+-- Set non-toolchain portion of runtime path of "/usr/local/bin/brutefir" to ""
+-- Installing: /usr/local/lib/brutefir/file.bfio
+-- Installing: /usr/local/lib/brutefir/filecb.bfio
+-- Installing: /usr/local/lib/brutefir/cli.bflogic
+-- Installing: /usr/local/lib/brutefir/eq.bflogic
+-- Set non-toolchain portion of runtime path of "/usr/local/lib/brutefir/eq.bflogic" to ""
+-- Installing: /usr/local/lib/brutefir/oss.bfio
+-- Installing: /usr/local/etc/rc.d/brutefir_loopback
+-- Installing: /usr/local/share/brutefir/brutefir.conf
+-- Installing: /usr/local/share/brutefir/brutefir_defaults
+```
 
 ### vim
 
