@@ -85,6 +85,9 @@ Remove the executables from /usr/local/bin or rename in .no as in Linux
 
 pkg install musicpd
 
+We used to have a *resampler* option. No more used. 
+musicpd.conf has been cleaned. Removed options have been deleted.
+
 ### vim
 
 in *.vimrc*  "*:set mouse="
