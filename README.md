@@ -71,7 +71,7 @@ Remove the executables from /usr/local/bin or rename in .no as in Linux
 
 ## MPD
 
-pkg install musicpd
+pkg install musicpd  musicpc
 
 We used to have a *resampler* option. No more used. 
 musicpd.conf has been cleaned. options removed from the recent releases of MPD have been deleted as well.
@@ -174,6 +174,7 @@ Restart upmpdcli
 /usr/local/bin/upmpdcli -c /home/giacomo/.local/etc/upmpdcli.conf
 ```
 
+
 ### brutefir
 
 > cd Downloads
@@ -213,6 +214,95 @@ Install the project...
 -- Installing: /usr/local/share/brutefir/brutefir.conf
 -- Installing: /usr/local/share/brutefir/brutefir_defaults
 ```
+
+#### Note
+
+The scripts used to start brutefir will use configuration files under the user's home dir (see brutefir-conf chapter)
+
+#### pass through "dummy" config file
+
+Provide a default configuration "pass through", that is referenced by a compulsory line in the brutefir_defaults.conf file:
+
+> cp /usr/local/share/brutefir/brutefir_passthrough.conf /home/giacomo/.config/BruteFIR/
+
+#### brutefir_defaults file
+
+Location: /home/giacomo/.config/BruteFir/brutefir_defaults  (the modern approach, honoring XDG)
+
+> cp  /usr/local/share/brutefir/brutefir.conf   /home/giacomo/.config/BruteFir/brutefir_defaults
+
+> chown giacomo  /home/giacomo/.config/BruteFir/brutefir_defaults
+
+
+#### audio loopback devices for brutefir
+
+Relevant directory: *freebsd/rc.d* inside the *brutefir* project
+
+As you can see from the [install output above](#Build-and-install), the installation process installed a file named *brutefir_loopback*
+under */usr/local/etc/rc.d*.
+
+Enable it, adding
+
+```
+brutefir_loopback_enable="YES"
+```
+
+to */etc/rc.conf*
+
+### brutefir-conf
+
+> cd /home/giacomo
+
+> mkdir DRC
+
+> cd DRC
+
+> git clone https://github.com/delleceste/brutefir-conf
+
+> cd brutefir-conf
+
+Inspect *drc.sh*:
+
+```
+drc_root="/home/giacomo/DRC"
+brutefir_conf_dir="brutefir-conf"
+conf_file="$drc_root/$brutefir_conf_dir/brutefir-$1.conf"
+process_name="brutefir"
+```
+
+and later:
+
+```
+echo "Starting 'brutefir $conf_file -daemon'..."
+brutefir $conf_file -daemon &>/tmp/brutefir.out
+```
+
+The variables shall match the *brutefir-conf* location.
+
+The *mpc* shall be available ( *pkg install musicpc* )
+
+
+#### Starting brutefir
+
+Try to run the script with the *off* option:
+
+> ./drc.sh off
+
+```
+brutefir not running
+Output 1 (Bryston BDA-2) is enabled
+Output 2 (BDA-2-0.05us_buf) is disabled
+Output 3 (DAC+DRC) is disabled
+Output 4 (Bryston BDA-2 + resampler) is disabled
+DRC stopped
+```
+
+##### Options
+
+*drc.sh* accept as option the *SUBSTRING* within the *brutefir-SUBSTRING.conf* files in the same
+*brutefir-conf* directory. For example
+
+./drc.sh 120.blue+0dB
 
 ### vim
 
