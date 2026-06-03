@@ -30,7 +30,7 @@ hint.sdhci_pci.1.disabled="1"
 
 # Software
 
-> pkg install vim git automake wget meson ninja sudo cmake
+> pkg install vim git automake wget meson ninja sudo cmake python
 
 # Install the destkop environment 
 
@@ -85,11 +85,25 @@ Build and install with meson
 
 > cat freebsd/upmpdcli
 
-Check and then copy
-
 > sudo cp freebsd/upmpdcli /usr/local/etc/rc.d
 
 Add to rc.d
+
+```
+upmpdcli_enable="YES"
+```
+
+Check */usr/local/etc/rc.d/upmpdcli* and add:
+
+```
+upmpdcli_user="giacomo"
+upmpdcli_pidfile="/home/giacomo/.cache/upmpdcli/upmpdcli.pid"
+upmpdcli_config="/home/giacomo/.local/etc/upmpdcli.conf"
+upmpdcli_homedir="/home/giacomo"
+```
+
+for example, after the *Optional overrides* comment block.
+
 
 
 
