@@ -77,6 +77,26 @@ Disable animations and unwanted effects
 
 Build and install with meson
 
+### FreeBSD specific files
+
+> git clone https://github.com/delleceste/upmpdcli-freebsd
+
+> cd upmpdcli-freebsd
+
+> cat freebsd/upmpdcli
+
+Check and then copy
+
+> sudo cp freebsd/upmpdcli /usr/local/etc/rc.d
+
+Add to rc.d
+
+
+
+### Qobuz authentication
+
+Read the [manual](https://www.lesbonscomptes.com/upmpdcli/pages/upmpdcli-manual.html#UPMPDCLI-MS-STR-QOBUZ)
+
 ## clean pulseaudio  / pipewire
 
 Remove the executables from /usr/local/bin or rename in .no as in Linux
