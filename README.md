@@ -324,7 +324,24 @@ Three reasons:
 
 ### Wrapper scripts
 
-The scripts in `browser-nodrc/` handle the toggle automatically. Install them:
+The `browser-nodrc/` directory contains one script per browser. On FreeBSD,
+Chromium is available via pkg; Google Chrome is not officially supported.
+
+| Script | Browser | Platform |
+|---|---|---|
+| `chromium-nodrc` | Chromium (`chromium` binary) | FreeBSD, Linux |
+| `chrome-nodrc` | Google Chrome (`google-chrome-stable`) | Linux |
+| `firefox-nodrc` | Firefox | FreeBSD, Linux |
+
+Install for FreeBSD:
+
+```
+cp browser-nodrc/chromium-nodrc ~/.local/bin/
+cp browser-nodrc/firefox-nodrc  ~/.local/bin/
+chmod +x ~/.local/bin/chromium-nodrc ~/.local/bin/firefox-nodrc
+```
+
+Install for Linux (Arch):
 
 ```
 cp browser-nodrc/chrome-nodrc  ~/.local/bin/
@@ -332,22 +349,30 @@ cp browser-nodrc/firefox-nodrc ~/.local/bin/
 chmod +x ~/.local/bin/chrome-nodrc ~/.local/bin/firefox-nodrc
 ```
 
-Edit the `BROWSER` variable at the top of `chrome-nodrc` to match the installed
-binary name (`chromium` on FreeBSD, `google-chrome-stable` on Arch Linux).
-
 **Behaviour:**
 
 - `firefox-nodrc` always works: `--no-remote` forces a fresh instance that
   blocks until the window closes, so DRC is reliably restored on exit.
-- `chrome-nodrc` works when Chromium is not already running; if an existing
-  instance is detected it warns and launches normally without touching DRC.
+- `chromium-nodrc` / `chrome-nodrc` work when the browser is not already
+  running; if an existing instance is detected they warn and launch normally
+  without touching DRC.
 
 ### Desktop entries
 
-Copy the `.desktop` files to `~/.local/share/applications/` so the launchers
-appear in the application menu alongside the originals. Icons are referenced
-by name (`chromium`, `firefox`) and therefore follow package updates
-automatically — no maintenance needed.
+Copy the relevant `.desktop` files to `~/.local/share/applications/` so the
+launchers appear in the application menu alongside the originals. Icons are
+referenced by name (`chromium`, `google-chrome`, `firefox`) and therefore
+follow package updates automatically — no maintenance needed.
+
+FreeBSD:
+
+```
+cp browser-nodrc/chromium-nodrc.desktop ~/.local/share/applications/
+cp browser-nodrc/firefox-nodrc.desktop  ~/.local/share/applications/
+update-desktop-database ~/.local/share/applications/
+```
+
+Linux (Arch):
 
 ```
 cp browser-nodrc/chrome-nodrc.desktop  ~/.local/share/applications/
@@ -361,14 +386,15 @@ On Linux with a Wayland session, Chrome/Chromium running in full software
 rendering mode (common on older Intel hardware where the GPU is blocklisted)
 shows a flashing band between the tab strip and the address bar. This is a
 Wayland subsurface synchronization artifact, not a GPU issue. Force X11 mode
-by creating `~/.config/chrome-flags.conf`:
+by creating `~/.config/chrome-flags.conf` (Google Chrome) or
+`~/.config/chromium-flags.conf` (Chromium):
 
 ```
 --ozone-platform=x11
 ```
 
-Chrome reads this file automatically on every launch. On FreeBSD the desktop
-runs on X11 natively (see Autologin section), so this is not needed.
+Each browser reads its own flags file automatically on every launch. On FreeBSD
+the desktop runs on X11 natively (see Autologin section), so this is not needed.
 
 ### vim
 
