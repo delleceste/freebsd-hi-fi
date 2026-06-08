@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Launch Chrome/Chromium with BruteFIR bypassed for correct A/V sync.
+# Restores DRC when the browser exits.
+# On FreeBSD use: chromium
+# On Linux use:   google-chrome-stable
+
+BROWSER=chromium
+DRC=/home/giacomo/DRC/brutefir-conf/drc.sh
+
+if pgrep -xi "$BROWSER" > /dev/null 2>&1; then
+    echo "Browser already running — DRC will NOT be toggled." >&2
+    exec "$BROWSER" "$@"
+fi
+
+"$DRC" off
+"$BROWSER" "$@"
+"$DRC" restore

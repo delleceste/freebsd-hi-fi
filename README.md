@@ -304,6 +304,72 @@ DRC stopped
 
 ./drc.sh 120.blue+0dB
 
+## Browser A/V sync with BruteFIR
+
+BruteFIR introduces a latency of roughly 0.5 s due to its large partition size
+(e.g. 32768 samples at 192000 Hz). Routing browser audio through the loopback
+and BruteFIR therefore causes video to arrive ahead of audio in YouTube and
+similar players — a mismatch that browsers cannot compensate for internally.
+
+The solution is to bypass BruteFIR entirely when using a browser: `drc.sh off`
+before launch, `drc.sh restore` on exit.
+
+### Why not route the browser through BruteFIR?
+
+Three reasons:
+- The 0.5 s audio delay cannot be matched by a video delay inside the browser.
+- Room correction matters most for focused music listening, not casual web video.
+- Reducing the partition size to cut latency (e.g. 4096 samples ≈ 21 ms) works
+  but significantly increases CPU load at 192000 Hz.
+
+### Wrapper scripts
+
+The scripts in `browser-nodrc/` handle the toggle automatically. Install them:
+
+```
+cp browser-nodrc/chrome-nodrc  ~/.local/bin/
+cp browser-nodrc/firefox-nodrc ~/.local/bin/
+chmod +x ~/.local/bin/chrome-nodrc ~/.local/bin/firefox-nodrc
+```
+
+Edit the `BROWSER` variable at the top of `chrome-nodrc` to match the installed
+binary name (`chromium` on FreeBSD, `google-chrome-stable` on Arch Linux).
+
+**Behaviour:**
+
+- `firefox-nodrc` always works: `--no-remote` forces a fresh instance that
+  blocks until the window closes, so DRC is reliably restored on exit.
+- `chrome-nodrc` works when Chromium is not already running; if an existing
+  instance is detected it warns and launches normally without touching DRC.
+
+### Desktop entries
+
+Copy the `.desktop` files to `~/.local/share/applications/` so the launchers
+appear in the application menu alongside the originals. Icons are referenced
+by name (`chromium`, `firefox`) and therefore follow package updates
+automatically — no maintenance needed.
+
+```
+cp browser-nodrc/chrome-nodrc.desktop  ~/.local/share/applications/
+cp browser-nodrc/firefox-nodrc.desktop ~/.local/share/applications/
+update-desktop-database ~/.local/share/applications/
+```
+
+### Note on Linux + Wayland
+
+On Linux with a Wayland session, Chrome/Chromium running in full software
+rendering mode (common on older Intel hardware where the GPU is blocklisted)
+shows a flashing band between the tab strip and the address bar. This is a
+Wayland subsurface synchronization artifact, not a GPU issue. Force X11 mode
+by creating `~/.config/chrome-flags.conf`:
+
+```
+--ozone-platform=x11
+```
+
+Chrome reads this file automatically on every launch. On FreeBSD the desktop
+runs on X11 natively (see Autologin section), so this is not needed.
+
 ### vim
 
 in *~/.vimrc*:

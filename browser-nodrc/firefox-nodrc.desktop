@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Name=Firefox (No DRC)
+Comment=Firefox with BruteFIR bypassed for A/V sync
+Exec=/home/giacomo/.local/bin/firefox-nodrc %U
+Icon=firefox
+Terminal=false
+Type=Application
+Categories=Network;WebBrowser;
+MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;
+StartupWMClass=firefox
