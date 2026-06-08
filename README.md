@@ -9,7 +9,7 @@ Created a bootable USB stick, I installed FreeBSD on an old Intel NUC from 2016,
 
 To connect to the *eduroam* network, I edited */etc/wpa_supplicant.conf*. I had to use the phone in USB tether mode during the *installation* in order to *install the firmware* that was needed for the WiFi *wlan0* interface.
 
-#### Post install messages
+#### Post  install messages
 
 EVDEV_SUPPORT enabled in the kernel -> enable evdev 
 
