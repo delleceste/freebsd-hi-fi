@@ -1,0 +1,55 @@
+#!/bin/sh
+
+. /etc/rc.subr
+
+name="drc_usb_audio"
+rcvar="drc_usb_audio_enable"
+start_cmd="drc_usb_audio_start"
+stop_cmd="drc_usb_audio_stop"
+status_cmd="drc_usb_audio_status"
+
+load_rc_config "$name"
+
+: ${drc_usb_audio_enable:="NO"}
+: ${drc_usb_audio_start_delay:="1"}
+: ${drc_usb_audio_state_file:="/var/run/drc_usb_audio.active"}
+: ${drc_usb_audio_brutefir_service:="brutefir_drc"}
+: ${drc_usb_audio_dsp_dev:="/dev/dsp0"}
+
+drc_usb_audio_start()
+{
+	if [ -f "${drc_usb_audio_state_file}" ]; then
+		echo "${name} already active"
+		return 0
+	fi
+
+	sleep "${drc_usb_audio_start_delay}"
+
+	if [ ! -e "${drc_usb_audio_dsp_dev}" ]; then
+		echo "${name}: ${drc_usb_audio_dsp_dev} not present; deferring to devd"
+		return 0
+	fi
+
+	service "${drc_usb_audio_brutefir_service}" onestart || return 1
+	: > "${drc_usb_audio_state_file}"
+}
+
+drc_usb_audio_stop()
+{
+	service "${drc_usb_audio_brutefir_service}" onestop
+	rm -f "${drc_usb_audio_state_file}"
+}
+
+drc_usb_audio_status()
+{
+	if [ -f "${drc_usb_audio_state_file}" ]; then
+		echo "${name} active"
+		service "${drc_usb_audio_brutefir_service}" onestatus
+		return 0
+	fi
+
+	echo "${name} inactive"
+	return 1
+}
+
+run_rc_command "$1"

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+DRC=/home/giacomo/open-media-drc/drc.sh
+
+"$DRC" off
+firefox --no-remote "$@"
+"$DRC" restore

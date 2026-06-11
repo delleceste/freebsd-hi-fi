@@ -1,0 +1,29 @@
+#!/bin/sh
+
+. /etc/rc.subr
+
+name=musicpd
+rcvar=musicpd_enable
+desc="Music Player Daemon"
+
+load_rc_config $name
+
+: ${musicpd_enable:=NO}
+: ${musicpd_config:="/home/giacomo/open-media-drc/mpd/musicpd.conf"}
+
+command=/usr/local/bin/musicpd
+command_args="${musicpd_config}"
+required_files="${musicpd_config}"
+start_precmd=${name}_getpidfile
+stop_precmd=${name}_getpidfile
+
+musicpd_getpidfile()
+{
+	if get_pidfile_from_conf pid_file "${musicpd_config}" ; then
+		pidfile="$_pidfile_from_conf"
+	else
+		pidfile="/home/giacomo/.cache/mpd/pid"
+	fi
+}
+
+run_rc_command $1

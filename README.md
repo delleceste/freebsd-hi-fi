@@ -1,420 +1,254 @@
 # freebsd-hi-fi
-FreeBSD multimedia hi fi system
 
-# Base installation
+This repo documents the current FreeBSD setup of `bee`: a Plasma/X11 desktop on an Intel Skylake NUC, with eduroam, Firefox video tuning, and an `open-media-drc`-based audio chain.
 
-Created a bootable USB stick, I installed FreeBSD on an old Intel NUC from 2016, in a free partition found after the linux dedicated partitions.
+The repo layout now mirrors the live filesystem:
 
-#### Eduroam 
-
-To connect to the *eduroam* network, I edited */etc/wpa_supplicant.conf*. I had to use the phone in USB tether mode during the *installation* in order to *install the firmware* that was needed for the WiFi *wlan0* interface.
-
-#### Post  install messages
-
-EVDEV_SUPPORT enabled in the kernel -> enable evdev 
-
-> sysctl kern.evdev.rcpt_mask=6
-
-# Kernel timeout messages
-
-controller timeout on  REGISTER Dump adma addr int enab... sdhci-pci0-slot0 blah blah at *boot*:
-
-```
-# /boot/loader.conf
-hw.sdhci.enable_msi=0
-
-# /boot/device.hints   (append these)
-hint.sdhci_pci.0.disabled="1"
-hint.sdhci_pci.1.disabled="1"
+```text
+etc/rc.conf
+etc/wpa_supplicant.conf
+open-media-drc/config.env
+open-media-drc/etc/devd/usb-audio-drc.conf
+open-media-drc/etc/rc.d/musicpd
+open-media-drc/etc/rc.d/brutefir_drc
+open-media-drc/etc/rc.d/drc_usb_audio
+open-media-drc/etc/rc.d/upmpdcli
+open-media-drc/mpd/musicpd.conf
+open-media-drc/upmpdcli/upmpdcli.conf
+usr/local/etc/omdrcctrl/commands.conf
+usr/local/etc/rc.d/omdrcctrl
+home/giacomo/.config/mozilla/firefox/mmtyb27r.default-release/user.js
+home/giacomo/.local/bin/*-nodrc
+home/giacomo/.local/share/applications/*-nodrc.desktop
 ```
 
-# Software
+Secrets were replaced with placeholders.
 
-> pkg install vim git automake wget meson ninja sudo cmake python
+## Base install
 
-# Install the destkop environment 
+Useful package milestones recovered from `pkg` install timestamps:
 
-> pkg install  plasma6-plasma sddm  xorg konsole  kdeconnect-kde dolphin
+- `2026-05-27`: firmware (`gpu-firmware-intel-kmod-skylake`, `wifi-firmware-iwlwifi-kmod-8000`), `xorg`, `drm-kmod`, `plasma6-plasma`, `sddm`, `seatd`, `konsole`, `dolphin`, `kdeconnect-kde`, build tools (`git`, `wget`, `meson`, `ninja`, `automake`, `sudo`), browsers (`firefox`, `chromium`), plus `cmake`, `libmpdclient`, `libmicrohttpd`
+- `2026-05-30`: `musicpd`, `kodi`
+- `2026-06-03`: `libnpupnp`, `cantata`
+- `2026-06-05`: `linux_base-rl9`, Flask runtime packages for `omdrcctrl`
+- `2026-06-06`: `sox`, `libva-intel-media-driver`, `libva-utils`
+- `2026-06-11`: `c-ares`, `curl`
 
-> pkg install drm-kmod
+Not visible in `pkg` because they were installed outside the package database:
 
-> sysrc kld_list+="i915kms"
+- `brutefir` from the `delleceste/brutefir` fork
+- `upmpdcli` and `libupnpp` from source
+- `omdrcctrl` built from `/home/giacomo/open-media-drc/omdrc-ctrl`
 
-> kldload i915kms
+## Video / GL
 
-> sysrc dbus_enable=YES sddm_enable=YES
+`/var/log/Xorg.0.log` shows the actual stack in use:
 
-> service dbus start
+- Xorg tries `intel`, but the module is absent
+- Xorg falls back to `modesetting`
+- `glamor` starts on `Mesa Intel(R) HD Graphics 520 (SKL GT2)`
+- OpenGL context is `4.6`
 
-> service sddm onestart
+So the current FreeBSD graphics path is:
 
-And then, after testing
-
-> sysrc sddm_enable=YES
-
-
-# KDE Settings
-
-Disable power management suspend session, turn off screen. Disable screen locking in Security and Privacy
-
-Disable animations and unwanted effects
-
-*File search* Data to index: *nothing*
-
-# kdeconnect
-
-# Audio
-
-## clean pulseaudio  / pipewire
-
-Remove the executables from /usr/local/bin or rename in .no as in Linux
-
-## MPD
-
-pkg install musicpd  musicpc
-
-We used to have a *resampler* option. No more used. 
-musicpd.conf has been cleaned. options removed from the recent releases of MPD have been deleted as well.
-
-## upmpdcli
-
-- *upmpdcli* will be installed *system-wide*
-
-- *upmpdcli* will run as user *giacomo*, and the configuration file shall be local under *~/.local/etc*
-
-- *upmpdcli rc.d script* under */usr/local/etc/rc.d*
-
-> pkg install libmicrohttpd
-
-> wget https://www.lesbonscomptes.com/upmpdcli/downloads/libnpupnp-6.3.0.tar.gz
-
-> wget https://www.lesbonscomptes.com/upmpdcli/downloads/libupnpp-1.0.4.tar.gz
-
-> wget https://www.lesbonscomptes.com/upmpdcli/downloads/upmpdcli-1.9.17.tar.gz
-
-Build and install with meson
-
-### FreeBSD specific files
-
-I created a *fork* of *upmpdcli* and added documentation and the *rc.d* script
-
-> cd /home/giacomo/Downloads
-
-> git clone https://github.com/delleceste/upmpdcli-freebsd
-
-> cd upmpdcli-freebsd
-
-> sudo cp freebsd/upmpdcli /usr/local/etc/rc.d
-
-Add *upmpdcli_enable="YES"* to rc.d
-
-```
-upmpdcli_enable="YES"
+```text
+i915kms
+-> /dev/dri/card0
+-> Xorg modesetting
+-> Mesa GL / glamor
 ```
 
-If you want to run *upmpdcli* as user *giacomo* instead of a 
-dedicated *upmpdcli* user (that would need creating an additional "nologin" user), check that
-the *upmpdcli* *rc* script contains:
+Packages that matter for this Intel card and GL setup:
 
-```
-upmpdcli_user="giacomo"
-upmpdcli_homedir="/home/giacomo"
-```
+- `drm-kmod`
+- `gpu-firmware-intel-kmod-skylake`
+- `mesa-libs`
+- `mesa-dri`
+- `xorg`
 
-> sudo service upmpdcli start
+`xf86-video-intel` is not part of the working setup.
 
-> ps aux |grep upmpdcli
+For browser-side video acceleration on this box, the relevant extra packages are `libva`, `libva-intel-media-driver`, and `libva-utils`.
 
-```
-giacomo    6494   0.0  0.6     105640  23500  -  I    13:09     0:00.28 /usr/local/bin/upmpdcli -c /home/giacomo/.local/etc/upmpdcli.conf
-```
+Relevant `rc.conf` lines:
 
-To stop the service:
-
-> sudo service upmpdcli stop
-
-```
-Stopping upmpdcli.
-Waiting for PIDS: 6494.
+```sh
+dbus_enable="YES"
+seatd_enable="YES"
+sddm_enable="YES"
+linux_enable="YES"
+kld_list="fusefs i915kms"
 ```
 
-### Qobuz authentication
+## Firefox video tuning
 
-Read the [manual](https://www.lesbonscomptes.com/upmpdcli/pages/upmpdcli-manual.html#UPMPDCLI-MS-STR-QOBUZ)
+The active Firefox overrides are in:
 
-Run the service as user from the command line:
+- `home/giacomo/.config/mozilla/firefox/mmtyb27r.default-release/user.js`
 
-> service upmpdcli stop
+The settings used for YouTube/video playback are:
 
->  /usr/local/bin/upmpdcli -c /home/giacomo/.local/etc/upmpdcli.conf -l 4
+- `media.ffmpeg.vaapi.enabled=true`
+- `gfx.x11-egl.force-enabled=true`
+- `gfx.webrender.all=true`
+- `media.av1.enabled=false`
 
-so that you can read the output log while authenticating on a browser. Use the link provided by:
+This enables VA-API on Skylake, forces the X11 EGL path Firefox needs on FreeBSD, forces hardware WebRender past the blocklist, and disables AV1 because HD 520 has no AV1 hardware decode.
 
-> ./src/mediaserver/cdplugins/qobuz/qobuz-init-oauth.py  -c /home/giacomo/.local/etc/upmpdcli.conf 
+## Home directory tweaks
 
-After logging in on the browser, among the *upmpdcli log lines*, you should see:
+Small local customizations currently present in the home directory:
 
-```
-CMDTALK: qobuz-app.py: 'Qobuz running'
-0$qobuz$: Qobuz login: oauth initialisation not done
-CMDTALK: qobuz-app.py: 'trackuri: [{\'cmdtalk:proc\': \'trackuri\', \'query\': \'{\\n\\t"code_autorisation" : "9YEZ8hhA"\\n}\', \'user-agent\': \'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36\', \'path\': \'/qobuz/oauth/\'}]'
-0$qobuz$: Qobuz login: oauth initialisation not done
-CMDTALK: qobuz-app.py: 'Qobuz: trackuri: OAuth initialisation'
-CMDTALK: qobuz-app.py: 'OAuth: got auth_code: 9YEZ8hhA'
-0$qobuz$: session: init_oauth: auth_code 9YEZ8hhA
-```
+- `.vimrc`: disables mouse mode and enables syntax highlighting
+- `.bashrc`: prepends `$HOME/.local/bin` to `PATH` so locally installed helpers and wrapper scripts are found first
 
-Restart upmpdcli
+No `.xprofile` is present on this machine.
 
-> sudo service upmpdcli restart
+## Networking / eduroam
 
-> ps aux |grep upmpd
+The box uses:
 
-```
-/usr/local/bin/upmpdcli -c /home/giacomo/.local/etc/upmpdcli.conf
+```sh
+wlans_iwm0="wlan0"
+ifconfig_wlan0="WPA  DHCP"
+ifconfig_wlan0_ipv6="inet6 ifdisabled  -auto_linklocal"
 ```
 
+`etc/wpa_supplicant.conf` contains the eduroam profile for:
 
-### brutefir
+- `ssid="eduroam"`
+- `key_mgmt=WPA-EAP`
+- `eap=PEAP`
+- `phase2="auth=MSCHAPV2"`
 
-> cd Downloads
+During initial installation, USB tethering was needed so the Wi-Fi firmware could be installed first.
 
-> git clone https://github.com/delleceste/brutefir
+## Current `/etc/rc.conf`
 
-Relevant files
+The live machine currently enables:
 
-- [FreeBSD.md](https://github.com/delleceste/brutefir/blob/master/FreeBSD.md)
-  
-- freebsd/  directory
+- `sshd`
+- `ntpd`
+- `dbus`
+- `seatd`
+- `sddm`
+- `musicpd`
+- `upmpdcli`
+- `drc_usb_audio`
+- `omdrcctrl`
 
-#### Build and install
+Important detail: `brutefir_drc_enable` is intentionally not enabled. DRC startup is now delegated to `drc_usb_audio` and `devd`, so the chain only starts when the USB DAC is actually present.
 
-> mkdir build
+## `open-media-drc` and the audio chain
 
-> cd build
+`/home/giacomo/open-media-drc` is a repo-based installation. The point is to keep configs, service glue, helper scripts, and filters in the repo and have the machine read from that checkout directly.
 
-> cmake ..
+Host-specific values come from `open-media-drc/config.env`, then `install.sh` renders the `*.in` templates into the live files used by the services.
 
-> make
+Current audio path:
 
-> sudo make install
-
-```
-Install the project...
--- Install configuration: ""
--- Installing: /usr/local/bin/brutefir
--- Set non-toolchain portion of runtime path of "/usr/local/bin/brutefir" to ""
--- Installing: /usr/local/lib/brutefir/file.bfio
--- Installing: /usr/local/lib/brutefir/filecb.bfio
--- Installing: /usr/local/lib/brutefir/cli.bflogic
--- Installing: /usr/local/lib/brutefir/eq.bflogic
--- Set non-toolchain portion of runtime path of "/usr/local/lib/brutefir/eq.bflogic" to ""
--- Installing: /usr/local/lib/brutefir/oss.bfio
--- Installing: /usr/local/etc/rc.d/brutefir_loopback
--- Installing: /usr/local/share/brutefir/brutefir.conf
--- Installing: /usr/local/share/brutefir/brutefir_defaults
-```
-
-#### Note
-
-The scripts used to start brutefir will use configuration files under the user's home dir (see brutefir-conf chapter)
-
-#### pass through "dummy" config file
-
-Provide a default configuration "pass through", that is referenced by a compulsory line in the brutefir_defaults.conf file:
-
-> cp /usr/local/share/brutefir/brutefir_passthrough.conf /home/giacomo/.config/BruteFIR/
-
-#### brutefir_defaults file
-
-Location: /home/giacomo/.config/BruteFir/brutefir_defaults  (the modern approach, honoring XDG)
-
-> cp  /usr/local/share/brutefir/brutefir.conf   /home/giacomo/.config/BruteFir/brutefir_defaults
-
-> chown giacomo  /home/giacomo/.config/BruteFir/brutefir_defaults
-
-
-#### audio loopback devices for brutefir
-
-Relevant directory: *freebsd/rc.d* inside the *brutefir* project
-
-As you can see from the [install output above](#Build-and-install), the installation process installed a file named *brutefir_loopback*
-under */usr/local/etc/rc.d*.
-
-Enable it, adding
-
-```
-brutefir_loopback_enable="YES"
+```text
+control point
+-> upmpdcli
+-> MPD
+-> direct DAC output
+or
+-> virtual_oss loopback
+-> brutefir
+-> OKTO DAC
 ```
 
-to */etc/rc.conf*
+Important live files mirrored here:
 
-### brutefir-conf
+- `open-media-drc/config.env`
+- `open-media-drc/mpd/musicpd.conf`
+- `open-media-drc/upmpdcli/upmpdcli.conf`
 
-> cd /home/giacomo
+`musicpd.conf` defines:
 
-> mkdir DRC
+- direct output to `/dev/dsp0`
+- `DRC-native` output to `/dev/dsp.play`
+- `DRC-resamp` output to `/dev/dsp.play` at `192000:24:2`
 
-> cd DRC
+`upmpdcli.conf` currently uses:
 
-> git clone https://github.com/delleceste/brutefir-conf
+- `friendlyname = bee`
+- `openhome = 1`
+- `upnpav = 0`
+- `checkcontentformat = 0`
+- `mpdhost = localhost`
+- `mpdport = 6600`
 
-> cd brutefir-conf
+## FreeBSD services
 
-Inspect *drc.sh*:
+Relevant files under `/usr/local/etc/rc.d` on the live system:
 
-```
-drc_root="/home/giacomo/DRC"
-brutefir_conf_dir="brutefir-conf"
-conf_file="$drc_root/$brutefir_conf_dir/brutefir-$1.conf"
-process_name="brutefir"
-```
-
-and later:
-
-```
-echo "Starting 'brutefir $conf_file -daemon'..."
-brutefir $conf_file -daemon &>/tmp/brutefir.out
-```
-
-The variables shall match the *brutefir-conf* location.
-
-The *mpc* shall be available ( *pkg install musicpc* )
-
-
-#### Starting brutefir
-
-Try to run the script with the *off* option:
-
-> ./drc.sh off
-
-```
-brutefir not running
-Output 1 (Bryston BDA-2) is enabled
-Output 2 (BDA-2-0.05us_buf) is disabled
-Output 3 (DAC+DRC) is disabled
-Output 4 (Bryston BDA-2 + resampler) is disabled
-DRC stopped
+```text
+musicpd      -> /home/giacomo/open-media-drc/etc/rc.d/musicpd
+brutefir_drc -> /home/giacomo/open-media-drc/etc/rc.d/brutefir_drc
+drc_usb_audio -> /home/giacomo/open-media-drc/etc/rc.d/drc_usb_audio
+upmpdcli     -> /home/giacomo/open-media-drc/etc/rc.d/upmpdcli
+omdrcctrl    -> regular file
 ```
 
-##### Options
+How they work:
 
-*drc.sh* accept as option the *SUBSTRING* within the *brutefir-SUBSTRING.conf* files in the same
-*brutefir-conf* directory. For example
+- `musicpd`: starts MPD with `/home/giacomo/open-media-drc/mpd/musicpd.conf`
+- `upmpdcli`: runs as `giacomo` with `/home/giacomo/open-media-drc/upmpdcli/upmpdcli.conf`
+- `brutefir_drc`: worker service that runs `drc.sh restore` and `drc.sh off`
+- `drc_usb_audio`: real DRC entry point; probes for `/dev/dsp0`, starts `brutefir_drc` when the DAC is present, and is also triggered by `devd`
+- `omdrcctrl`: Flask remote control panel started with `daemon(8)`, running as `giacomo`, with `DISPLAY=:0` and `OMDRCCTRL_DRC_DIR=/home/giacomo/open-media-drc`
 
-./drc.sh 120.blue+0dB
+`omdrcctrl` command mapping is mirrored in:
 
-## Browser A/V sync with BruteFIR
+- `usr/local/etc/omdrcctrl/commands.conf`
 
-BruteFIR introduces a latency of roughly 0.5 s due to its large partition size
-(e.g. 32768 samples at 192000 Hz). Routing browser audio through the loopback
-and BruteFIR therefore causes video to arrive ahead of audio in YouTube and
-similar players — a mismatch that browsers cannot compensate for internally.
+That panel controls:
 
-The solution is to bypass BruteFIR entirely when using a browser: `drc.sh off`
-before launch, `drc.sh restore` on exit.
+- DRC off
+- DRC native rates `44.1`, `48`, `88.2`, `96`, `192`
+- DRC `192 kHz +2dB`
+- DRC resampling mode
+- app launchers
+- reboot / poweroff
 
-### Why not route the browser through BruteFIR?
+## Problems hit so far
 
-Three reasons:
-- The 0.5 s audio delay cannot be matched by a video delay inside the browser.
-- Room correction matters most for focused music listening, not casual web video.
-- Reducing the partition size to cut latency (e.g. 4096 samples ≈ 21 ms) works
-  but significantly increases CPU load at 192000 Hz.
+### MPD / curl CPU spin
 
-### Wrapper scripts
+Documented in `/home/giacomo/open-media-drc/MPD-CURL-CPU-SPIN-FreeBSD.md`.
 
-The `browser-nodrc/` directory contains one script per browser. On FreeBSD,
-Chromium is available via pkg; Google Chrome is not officially supported.
+Relevant status to keep in mind:
 
-| Script | Browser | Platform |
-|---|---|---|
-| `chromium-nodrc` | Chromium (`chromium` binary) | FreeBSD, Linux |
-| `chrome-nodrc` | Google Chrome (`google-chrome-stable`) | Linux |
-| `firefox-nodrc` | Firefox | FreeBSD, Linux |
+- the bug was diagnosed as a `libcurl` problem, not an MPD problem
+- rebuilding with `c-ares` instead of the threaded resolver was a temporary fix
+- the issue is considered solved in curl master
 
-Install for FreeBSD:
+### OKTO DAC 44.1 kHz flicker on FreeBSD
 
-```
-cp browser-nodrc/chromium-nodrc ~/.local/bin/
-cp browser-nodrc/firefox-nodrc  ~/.local/bin/
-chmod +x ~/.local/bin/chromium-nodrc ~/.local/bin/firefox-nodrc
-```
+Documented in:
 
-Install for Linux (Arch):
+- `OKTO-DAC8-FreeBSD-44k1-flicker.md`
+- `freebsd-uaudio-patch/README.md`
+- `freebsd-uaudio-patch/FreeBSD-uaudio-shared-clock-bug.md`
 
-```
-cp browser-nodrc/chrome-nodrc  ~/.local/bin/
-cp browser-nodrc/firefox-nodrc ~/.local/bin/
-chmod +x ~/.local/bin/chrome-nodrc ~/.local/bin/firefox-nodrc
-```
+Summary:
 
-**Behaviour:**
+- stock `uaudio(4)` mishandles the OKTO shared UAC2 clock
+- the 44.1 kHz family flickers, while the 48 kHz family is stable
+- the local workaround is the patched `snd_uaudio.ko` kept in `open-media-drc/freebsd-uaudio-patch`
 
-- `firefox-nodrc` always works: `--no-remote` forces a fresh instance that
-  blocks until the window closes, so DRC is reliably restored on exit.
-- `chromium-nodrc` / `chrome-nodrc` work when the browser is not already
-  running; if an existing instance is detected they warn and launch normally
-  without touching DRC.
+### Kodi and `virtual_oss`
 
-### Desktop entries
+Documented in `kodi-virtual-oss-patch/README.md`.
 
-Copy the relevant `.desktop` files to `~/.local/share/applications/` so the
-launchers appear in the application menu alongside the originals. Icons are
-referenced by name (`chromium`, `google-chrome`, `firefox`) and therefore
-follow package updates automatically — no maintenance needed.
+Kodi needed a local OSS sink patch so `virtual_oss` userspace devices become visible and selectable.
 
-FreeBSD:
+## BruteFIR note
 
-```
-cp browser-nodrc/chromium-nodrc.desktop ~/.local/share/applications/
-cp browser-nodrc/firefox-nodrc.desktop  ~/.local/share/applications/
-update-desktop-database ~/.local/share/applications/
-```
+BruteFIR is currently installed from a fork which re-introduced the OSS backend for FreeBSD after it was removed from official BruteFIR since `v1.1.0`.
 
-Linux (Arch):
+The active geometry in `drc.sh` is:
 
-```
-cp browser-nodrc/chrome-nodrc.desktop  ~/.local/share/applications/
-cp browser-nodrc/firefox-nodrc.desktop ~/.local/share/applications/
-update-desktop-database ~/.local/share/applications/
-```
-
-### Note on Linux + Wayland
-
-On Linux with a Wayland session, Chrome/Chromium running in full software
-rendering mode (common on older Intel hardware where the GPU is blocklisted)
-shows a flashing band between the tab strip and the address bar. This is a
-Wayland subsurface synchronization artifact, not a GPU issue. Force X11 mode
-by creating `~/.config/chrome-flags.conf` (Google Chrome) or
-`~/.config/chromium-flags.conf` (Chromium):
-
-```
---ozone-platform=x11
-```
-
-Each browser reads its own flags file automatically on every launch. On FreeBSD
-the desktop runs on X11 natively (see Autologin section), so this is not needed.
-
-### vim
-
-in *~/.vimrc*:
-
-```
-:set mouse=
-:syntax on
-```
-
-### bashrc
-
-## Autologin
-
-Drop it in a dedicated file so it survives package updates — /usr/local/etc/sddm.conf.d/autologin.conf:
-
-```
-[Autologin]
-User=giacomo
-Session=plasmax11.desktop
-Relogin=false
-```
-
+- `GEOMETRY="120.blue"`

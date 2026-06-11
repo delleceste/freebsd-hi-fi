@@ -1,0 +1,42 @@
+#!/bin/sh
+
+. /etc/rc.subr
+
+name="brutefir_drc"
+rcvar="brutefir_drc_enable"
+start_cmd="brutefir_drc_start"
+stop_cmd="brutefir_drc_stop"
+status_cmd="brutefir_drc_status"
+
+load_rc_config "$name"
+
+: ${brutefir_drc_enable:="NO"}
+: ${brutefir_drc_user:="giacomo"}
+: ${brutefir_drc_drcsh:="/home/giacomo/open-media-drc/drc.sh"}
+: ${brutefir_drc_statussh:="/home/giacomo/open-media-drc/drc-status.sh"}
+
+_drc_as_user()
+{
+	if [ "$(id -u)" -eq 0 ]; then
+		su -l "${brutefir_drc_user}" -c "$*"
+	else
+		sh -c "$*"
+	fi
+}
+
+brutefir_drc_start()
+{
+	_drc_as_user "${brutefir_drc_drcsh} restore"
+}
+
+brutefir_drc_stop()
+{
+	_drc_as_user "${brutefir_drc_drcsh} off"
+}
+
+brutefir_drc_status()
+{
+	_drc_as_user "${brutefir_drc_statussh}"
+}
+
+run_rc_command "$1"

@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# PROVIDE: omdrcctrl
+# REQUIRE: NETWORKING LOGIN
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="omdrcctrl"
+rcvar="omdrcctrl_enable"
+
+load_rc_config "$name"
+
+: ${omdrcctrl_enable:="NO"}
+: ${omdrcctrl_user:="giacomo"}
+: ${omdrcctrl_env:="PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin DISPLAY=:0 OMDRCCTRL_DRC_DIR=/home/giacomo/open-media-drc"}
+
+command="/usr/sbin/daemon"
+
+if [ "$(id -u)" -eq 0 ]; then
+	: ${omdrcctrl_pidfile:="/var/run/${name}/${name}.pid"}
+	: ${omdrcctrl_logfile:="/var/run/${name}/${name}.log"}
+else
+	unset omdrcctrl_user
+	: ${omdrcctrl_pidfile:="${TMPDIR:-/tmp}/${name}-$(id -un).pid"}
+	: ${omdrcctrl_logfile:="${TMPDIR:-/tmp}/${name}-$(id -un).log"}
+fi
+
+pidfile="${omdrcctrl_pidfile}"
+command_args="-f -o ${omdrcctrl_logfile} -P ${pidfile} /usr/local/bin/omdrcctrl"
+
+start_precmd="omdrcctrl_precmd"
+
+omdrcctrl_precmd()
+{
+	for d in "${omdrcctrl_pidfile%/*}" "${omdrcctrl_logfile%/*}"; do
+		if [ -n "${omdrcctrl_user}" ]; then
+			/usr/bin/install -d -o "${omdrcctrl_user}" -m 0755 "${d}"
+		else
+			/usr/bin/install -d -m 0755 "${d}"
+		fi
+	done
+}
+
+run_rc_command "$1"

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+BROWSER=google-chrome
+DRC=/home/giacomo/open-media-drc/drc.sh
+
+if pgrep -xi "$BROWSER" > /dev/null 2>&1; then
+    echo "Browser already running — DRC will NOT be toggled." >&2
+    exec "$BROWSER" "$@"
+fi
+
+"$DRC" off
+"$BROWSER" "$@"
+"$DRC" restore

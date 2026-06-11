@@ -1,0 +1,41 @@
+#!/bin/sh
+
+PREFIX="/usr/local"
+BINDIR="${PREFIX}/bin"
+
+upmpdcli_user="giacomo"
+upmpdcli_homedir="/home/giacomo"
+
+. /etc/rc.subr
+
+name="upmpdcli"
+rcvar="upmpdcli_enable"
+
+load_rc_config "$name"
+
+: ${upmpdcli_enable:="NO"}
+: ${upmpdcli_user:="giacomo"}
+: ${upmpdcli_homedir:="/home/giacomo"}
+: ${upmpdcli_flags:=""}
+: ${upmpdcli_config:="/home/giacomo/open-media-drc/upmpdcli/upmpdcli.conf"}
+: ${upmpdcli_pidfile:="${upmpdcli_homedir}/.cache/upmpdcli/upmpdcli.pid"}
+
+export HOME="${upmpdcli_homedir}"
+export PATH="${BINDIR}:/usr/bin:/bin"
+
+command="/usr/sbin/daemon"
+procname="${BINDIR}/upmpdcli"
+pidfile="${upmpdcli_pidfile}"
+
+required_files="${upmpdcli_config}"
+
+command_args="-f -p ${upmpdcli_pidfile} -t ${name} -- ${BINDIR}/upmpdcli -c ${upmpdcli_config} ${upmpdcli_flags}"
+
+start_precmd="upmpdcli_precmd"
+
+upmpdcli_precmd()
+{
+	/usr/bin/install -d -o "${upmpdcli_user}" -m 0755 "${upmpdcli_pidfile%/*}"
+}
+
+run_rc_command "$1"
